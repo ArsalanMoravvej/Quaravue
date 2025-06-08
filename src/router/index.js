@@ -1,4 +1,5 @@
 import MainLayout from '@/components/layout/mainLayout.vue'
+import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -8,7 +9,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: MainLayout,
+      component: HomeView,
     },
     {
       path: '/login',

@@ -3,8 +3,8 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://quaravel.test' // Your Laravel API URL
-axios.defaults.withCredentials = true // Important for cookies
+axios.defaults.baseURL = 'http://quaravel.test'
+axios.defaults.withCredentials = true
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -12,7 +12,8 @@ export const useAuthStore = defineStore('auth', {
     token: null,
     isAuthenticated: false,
     loading: false,
-    error: null
+    error: null,
+    initialized: false // Track if we've done initial auth check
   }),
 
   getters: {
@@ -24,31 +25,25 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
 
-      
-      
-
       try {
-        const csrf = await axios.get("/csrf-token", { withCredentials: true })
-
         const response = await axios.post('/api/login', {
-          _token : csrf.data.csrf_token,
           email: credentials.email,
           password: credentials.password
-        },
-        { withCredentials: true }
-      )
+        }, { withCredentials: true })
 
-
-
+        // Fix: Use consistent token property
         this.user = response.data.data.user
         this.token = response.data.data.access_token
         this.isAuthenticated = true
 
-        // Store token in localStorage as backup
+
+        console.log(this.user.name)
+
+        // Store token in localStorage
         localStorage.setItem('auth_token', this.token)
         
-        // Set default authorization header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+        // Set default authorization header (fix: use correct token)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
 
         return { success: true, user: this.user }
       } catch (error) {
@@ -68,58 +63,70 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
 
       try {
-        await axios.post('/logout')
-        
-        this.user = null
-        this.token = null
-        this.isAuthenticated = false
-
-        // Clear stored token
-        localStorage.removeItem('auth_token')
-        delete axios.defaults.headers.common['Authorization']
-
-        return { success: true }
+        await axios.post('/api/logout')
       } catch (error) {
         console.error('Logout error:', error)
-        // Force logout even if API call fails
+      } finally {
+        // Always clear state regardless of API success
         this.user = null
         this.token = null
         this.isAuthenticated = false
         localStorage.removeItem('auth_token')
         delete axios.defaults.headers.common['Authorization']
-
-        return { success: true }
-      } finally {
         this.loading = false
       }
+
+      return { success: true }
     },
 
+    // Improved: Check auth with whoami endpoint
     async checkAuth() {
       const token = localStorage.getItem('auth_token')
       
       if (!token) {
+        this.initialized = true
         return false
       }
 
       try {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        const response = await axios.get('/user')
         
-        this.user = response.data.user
+        // Use your whoami endpoint
+        const response = await axios.get('/api/whoami')
+        
+        this.user = response.data.data.user // Adjust based on your API response
         this.token = token
         this.isAuthenticated = true
+        this.initialized = true
 
         return true
       } catch (error) {
-        // Token is invalid, clear it
-        localStorage.removeItem('auth_token')
-        delete axios.defaults.headers.common['Authorization']
-        this.user = null
-        this.token = null
-        this.isAuthenticated = false
-
+        // Token is invalid, clear everything
+        this.clearAuth()
         return false
       }
+    },
+
+    // Initialize auth state on app startup
+    async initializeAuth() {
+      if (this.initialized) return
+
+      this.loading = true
+      try {
+        await this.checkAuth()
+      } finally {
+        this.loading = false
+        this.initialized = true
+      }
+    },
+
+    clearAuth() {
+      this.user = null
+      this.token = null
+      this.isAuthenticated = false
+      localStorage.removeItem('auth_token')
+      delete axios.defaults.headers.common['Authorization']
+      this.initialized = true
     },
 
     clearError() {

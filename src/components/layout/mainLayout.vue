@@ -53,27 +53,18 @@
     </div>
 </template>
 
-<script>
+<script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
-export default {
-  name: 'mainLayout',
-  setup() {
-    const authStore = useAuthStore()
-    const router = useRouter()
+// Use setup syntax instead of options API to avoid re-instantiation
+const authStore = useAuthStore()
+const router = useRouter()
 
-    const handleLogout = async () => {
-      const result = await authStore.logout()
-      if (result.success) {
-        router.push('/login')
-      }
-    }
-
-    return {
-      authStore,
-      handleLogout
-    }
+const handleLogout = async () => {
+  const result = await authStore.logout()
+  if (result.success) {
+    router.push('/login')
   }
 }
 </script>

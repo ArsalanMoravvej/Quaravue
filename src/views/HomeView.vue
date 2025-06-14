@@ -1,10 +1,3 @@
-<script setup>
-import mainLayout from '@/components/layout/mainLayout.vue';
-import { useAuthStore } from '@/stores/auth';
-
-const authStore = useAuthStore();
-</script>
-
 <template>
     <mainLayout>
         <div class="space-y-6">
@@ -34,10 +27,21 @@ const authStore = useAuthStore();
             <!-- Access computed getters -->
             <div v-if="authStore.isLoggedIn" class="space-y-2">
                 <p>You have access to protected features!</p>
-                <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
-                    Access Protected Feature
-                </button>
+                <router-link 
+                    to="/surveys"
+                    class="inline-block bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                    View Surveys
+                </router-link>
             </div>
         </div>
     </mainLayout>
 </template>
+
+<script setup>
+import mainLayout from '@/components/layout/mainLayout.vue';
+import { useAuthStore } from '@/stores/auth';
+
+// Don't call useAuthStore() again - get it from the provide/inject or import it once
+const authStore = useAuthStore();
+</script>
